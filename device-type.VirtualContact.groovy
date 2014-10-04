@@ -18,7 +18,7 @@ metadata {
 	definition (name: "Virtual Contact", namespace: "CaesarsGhost", author: "CaesarsGhost") {
     capability "Contact Sensor"
     command "open"
-    command "closed"
+    command "closed"    
 	}
 
 	simulator {
@@ -27,8 +27,8 @@ metadata {
 
 	tiles {
         standardTile("contact", "device.contact", inactiveLabel: false) {
-			state "open", label: '${state.Label}', icon: "st.contact.contact.open", backgroundColor: "#ffa81e"
-			state "closed", label: '${state.Label}', icon: "st.contact.contact.closed", backgroundColor: "#79b821"
+			state "open", label: '${name}', icon: "st.contact.contact.open", backgroundColor: "#ffa81e"
+			state "closed", label: '${name}', icon: "st.contact.contact.closed", backgroundColor: "#79b821"
 		}  
 	}
     
@@ -37,13 +37,12 @@ metadata {
 
 
 def open( String name ) {
-	log.debug "Open"    
+	log.debug "Open"   
     sendEvent (name: "contact", value: "open" )
 }
 
 def closed( String name ) {
 	log.debug "Close"
-    state.Label = name
     sendEvent (name: "contact", value: "closed" )
 }
 // parse events into attributes
@@ -51,4 +50,3 @@ def parse(String description) {
 	return NULL
 
 }
-

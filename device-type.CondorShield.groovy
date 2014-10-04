@@ -50,15 +50,15 @@ metadata {
 	}
 
 	tiles {
-        standardTile("ArmTile", "device.CondorShield", width: 1, height: 1, canChangeIcon: true, canChangeBackground: true) {
-            state "Arm", label: 'Arm', action: "armstay", icon: "st.home.home1", backgroundColor: "#ffa81e", nextState: "sendingArm"
-            state "sendingArm", label: 'Arming', action: "armstay", icon: "st.Health & Wellness.health7", backgroundColor: "#cccccc"
-            state "DisArm", label: 'Disarm', action: "Disarm", icon: "st.Health & Wellness.health7", backgroundColor: "#79b821", nextState: "sendingDisarm"
-            state "sendingDisarm", label: 'Disarming', action: "Disarm", icon: "st.Health & Wellness.health7", backgroundColor: "#cccccc"
+        standardTile("ArmTile", "device.CondorShield", canChangeIcon: true, inactiveLabel: false) {
+            state "Arm", label: 'Arm', action: "armstay", icon: "st.Home.home3", backgroundColor: "#ffa81e", nextState: "sendingArm"
+            state "sendingArm", label: 'Arming', action: "armstay", icon: "st.Weather.weather1", backgroundColor: "#cccccc"
+            state "DisArm", label: 'Disarm', action: "Disarm", icon: "st.Home.home3", backgroundColor: "#79b821", nextState: "sendingDisarm"
+            state "sendingDisarm", label: 'Disarming', action: "Disarm", icon: "st.Weather.weather1", backgroundColor: "#cccccc"
         }
-        standardTile("silent", "device.silent", canChangeIcon: true, canChangeBackground: true) {        						
-			state "loud", label: 'loud', action: "armSilent", icon: "st.contact.contact.closed", backgroundColor: "#79b821"            
-			state "silent", label: 'silent', action:"armLoud", icon: "st.contact.contact.open", backgroundColor: "#ffa81e"	            
+        standardTile("silent", "device.silent", inactiveLabel: false) {        						
+			state "loud", label: 'loud', action: "armSilent", icon: "st.Outdoor.outdoor10", backgroundColor: "#79b821"            
+			state "silent", label: 'silent', action:"armLoud", icon: "st.Outdoor.outdoor9", backgroundColor: "#ffa81e"	            
 		}        
         standardTile("Zone 1", "device.zone1", inactiveLabel: false) {
         	state "closed", label: 'Zone 1', icon: "st.contact.contact.closed", backgroundColor: "#79b821"
@@ -87,11 +87,11 @@ metadata {
 		standardTile("refresh", "device.alarmMode", inactiveLabel: false, decoration: "flat") {
 			state "default", action:"polling.poll", icon:"st.secondary.refresh"
 		} 
-		standardTile("displayupdate", "device.displayupdate", inactiveLabel: false, decoration: "flat") { 
+		standardTile("displayupdate", "device.displayupdate", inactiveLabel: false) { 
 			state "inactive", label: "Display", action:"displayrequest", icon: "st.Electronics.electronics18", backgroundColor: "#ffa81e"
             state "active", label: "Display", action:"displaystop", icon: "st.Electronics.electronics18", backgroundColor: "#79b821"
 		}        
-        valueTile("paneldisplay", "device.paneldisplay", width: 3, height: 1, decoration: "flat") {
+        valueTile("paneldisplay", "device.paneldisplay", width: 2, height: 1, decoration: "flat") {
             state "default", label:'${currentValue}'
         }        
 	    standardTile("keyStar", "device.keyStar", width: 1, height: 1, inactiveLabel: false, decoration: "flat") {
@@ -139,8 +139,8 @@ metadata {
 	}
     
     main "ArmTile"
-    details(["ArmTile", "silent", "Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5", "Zone 6","refresh", "displayupdate", "keyA", "keyB", 
-    "paneldisplay", "keySeven", "keyEight", "keyNine", "keyFour", "keyFive", "keySix", "keyOne", "keyTwo", "keyThree", "keyStar", "keyZero", "keyPound" ])
+    details(["ArmTile", "silent", "Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5", "Zone 6","refresh", "displayupdate",
+    "paneldisplay"])
 }
 
 // parse events into attributes
@@ -195,6 +195,12 @@ def parse(String description) {
         	switch( decodedValue[2] )
             {
             case 0x01: //Arming level
+                if( state.bRefresh == "True" )
+                {
+                    sendEvent( name: "paneldisplay", value: "Done" )
+                    state.bRefresh = "False"
+                }
+               
                 if( (decodedValue[7]&0x0E) != 0 )
                 {
                     //We are armed allow the system to be disarmed
@@ -204,12 +210,6 @@ def parse(String description) {
                 {   
                     //We are disarmed allow the system to be armed again
                     return createEvent(name: "CondorShield", value: "Arm", displayed: true, isStateChange: true)            	
-                }
-                
-                if( state.bRefresh == "True" )
-                {
-                	sendEvent( name:"paneldisplay", value: "READY" )	
-                    state.bRefresh = "False"
                 }
                 break;
             case 0x09:
@@ -227,6 +227,18 @@ def parse(String description) {
     }
 }
 
+
+def installed()
+{
+  resetState()
+}
+
+def updated()
+{
+  resetState()
+}
+
+
 // handle commands
 def poll() {
 	log.debug "Executing 'poll'"
@@ -242,6 +254,7 @@ def resetState()
 {
 	for(int i = 1; i<7; i++ )
     {
+        sendEvent( name: ("zone"+ i.toString()), value: "open" )
         sendEvent( name: ("zone"+ i.toString()), value: "closed" )
     }
                 
