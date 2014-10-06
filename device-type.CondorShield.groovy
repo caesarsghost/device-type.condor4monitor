@@ -17,10 +17,8 @@
 metadata {
 	// Automatically generated. Make future change here.
 	definition (name: "CondorShield", author: "CaesarsGhost", namespace: "CaesarsGhost") {
-		capability "Contact Sensor"
-		capability "Alarm"
-		capability "Switch"
         capability "Polling"
+        capability "Lock"
         command "armstay"
         command "Disarm"
         command "displayrequest"
@@ -50,11 +48,11 @@ metadata {
 	}
 
 	tiles {
-        standardTile("ArmTile", "device.CondorShield", canChangeIcon: true, inactiveLabel: false) {
-            state "Arm", label: 'Arm', action: "armstay", icon: "st.Home.home3", backgroundColor: "#ffa81e", nextState: "sendingArm"
-            state "sendingArm", label: 'Arming', action: "armstay", icon: "st.Weather.weather1", backgroundColor: "#cccccc"
-            state "DisArm", label: 'Disarm', action: "Disarm", icon: "st.Home.home3", backgroundColor: "#79b821", nextState: "sendingDisarm"
-            state "sendingDisarm", label: 'Disarming', action: "Disarm", icon: "st.Weather.weather1", backgroundColor: "#cccccc"
+        standardTile("ArmTile", "device.lock", canChangeIcon: true, inactiveLabel: false) {
+            state "unlocked", label: 'Arm', action: "armstay", icon: "st.Home.home3", backgroundColor: "#ffa81e", nextState: "locking"
+            state "locking", label: 'Arming', action: "armstay", icon: "st.Weather.weather1", backgroundColor: "#cccccc"
+            state "locked", label: 'Disarm', action: "Disarm", icon: "st.Home.home3", backgroundColor: "#79b821", nextState: "unlocking"
+            state "unlocking", label: 'Disarming', action: "Disarm", icon: "st.Weather.weather1", backgroundColor: "#cccccc"
         }
         standardTile("silent", "device.silent", inactiveLabel: false) {        						
 			state "loud", label: 'loud', action: "armSilent", icon: "st.Outdoor.outdoor10", backgroundColor: "#79b821"            
@@ -204,12 +202,12 @@ def parse(String description) {
                 if( (decodedValue[7]&0x0E) != 0 )
                 {
                     //We are armed allow the system to be disarmed
-                    return createEvent(name: "CondorShield", value: "DisArm", displayed: true, isStateChange: true)
+                    return createEvent(name: "lock", value: "locked", displayed: true, isStateChange: true)
                 }
                 else
                 {   
                     //We are disarmed allow the system to be armed again
-                    return createEvent(name: "CondorShield", value: "Arm", displayed: true, isStateChange: true)            	
+                    return createEvent(name: "lock", value: "unlocked", displayed: true, isStateChange: true)            	
                 }
                 break;
             case 0x09:
@@ -252,11 +250,11 @@ def poll() {
 
 def resetState()
 {
-	for(int i = 1; i<7; i++ )
-    {
-        sendEvent( name: ("zone"+ i.toString()), value: "open" )
-        sendEvent( name: ("zone"+ i.toString()), value: "closed" )
-    }
+	//for(int i = 1; i<7; i++ )
+    //{
+    //    sendEvent( name: ("zone"+ i.toString()), value: "open" )
+    //    sendEvent( name: ("zone"+ i.toString()), value: "closed" )
+    //}
                 
 	displaystop()
     
@@ -277,22 +275,13 @@ def armLoud()
     sendEvent( name:"silent", value: "loud" )
 }
 
-// handle commands
-def off() {
-	log.debug "Executing 'off'"
-	// TODO: handle 'off' command
-    
-    log.debug device.latestValue("paneldisplay")
+
+def lock() {
+	armstay()
 }
 
-def strobe() {
-	log.debug "Executing 'strobe'"
-	// TODO: handle 'strobe' command   	
-}
-
-def siren() {
-	log.debug "Executing 'siren'"
-	// TODO: handle 'siren' command
+def unlock(){
+	Disarm()
 }
 
 def armstay() {
@@ -319,16 +308,6 @@ def Disarm() {
     	sendKeypress( 0x20 )
     }
 	// TODO: handle 'both' command
-}
-
-def both() {
-	log.debug "Executing 'both'"
-	// TODO: handle 'both' command
-}
-
-def on() {
-	log.debug "Executing 'on'"
-	// TODO: handle 'on' command
 }
 
 def displayrequest()
