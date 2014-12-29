@@ -39,6 +39,8 @@ metadata {
         command "keyPound"
         command "armSilent"
         command "armLoud"
+        command "armBypass"
+        command "armRegular"
         
         attribute "paneldisplay", "string"        
 	}
@@ -54,10 +56,14 @@ metadata {
             state "locked", label: 'Disarm', action: "Disarm", icon: "st.Home.home3", backgroundColor: "#79b821", nextState: "unlocking"
             state "unlocking", label: 'Disarming', action: "Disarm", icon: "st.Weather.weather1", backgroundColor: "#cccccc"
         }
-        standardTile("silent", "device.silent", inactiveLabel: false) {        						
-			state "loud", label: 'loud', action: "armSilent", icon: "st.Outdoor.outdoor10", backgroundColor: "#79b821"            
-			state "silent", label: 'silent', action:"armLoud", icon: "st.Outdoor.outdoor9", backgroundColor: "#ffa81e"	            
+        standardTile("silent", "device.silent", canChangeIcon: true, inactiveLabel: false) {        						
+			state "loud", label: 'loud', action: "armSilent", icon: "st.Outdoor.outdoor10", backgroundColor: "#79b821" , nextState: "silent"           
+			state "silent", label: 'silent', action:"armLoud", icon: "st.Outdoor.outdoor9", backgroundColor: "#ffa81e" , nextState : "loud"            
 		}        
+        standardTile("bypass", "device.bypass", canChangeIcon: true,inactiveLabel: false) {        						
+			state "disable", label: 'Disabled', action: "armBypass", icon: "st.Outdoor.outdoor10", backgroundColor: "#79b821" , nextState: "enable"
+			state "enable", label: 'Enabled', action:"armRegular", icon: "st.Outdoor.outdoor9", backgroundColor: "#ffa81e" , nextState: "disable"  
+		}                
         standardTile("Zone 1", "device.zone1", inactiveLabel: false) {
         	state "closed", label: 'Zone 1', icon: "st.contact.contact.closed", backgroundColor: "#79b821"
 			state "open", label: 'Zone 1', icon: "st.contact.contact.open", backgroundColor: "#ffa81e"			
@@ -137,8 +143,8 @@ metadata {
 	}
     
     main "ArmTile"
-    details(["ArmTile", "silent", "Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5", "Zone 6","refresh", "displayupdate",
-    "paneldisplay"])
+    details(["ArmTile", "silent", "Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5", "Zone 6", "refresh", "displayupdate",
+    "paneldisplay", "refresh" ])
 }
 
 // parse events into attributes
@@ -250,17 +256,27 @@ def poll() {
 
 def resetState()
 {
-	//for(int i = 1; i<7; i++ )
-    //{
+	for(int i = 1; i<7; i++ )
+    {
     //    sendEvent( name: ("zone"+ i.toString()), value: "open" )
-    //    sendEvent( name: ("zone"+ i.toString()), value: "closed" )
-    //}
+        sendEvent( name: ("zone"+ i.toString()), value: "closed" )
+    }
                 
 	displaystop()
     
     sendEvent( name:"paneldisplay", value: "REFRESH" )
     
-    armLoud()
+    if( state.bLoud == "True" )
+    {
+       sendEvent( name: "silent", value: "loud" )
+    }
+    else
+    {
+       sendEvent( name: "silent", value: "silent" )
+    }
+    
+    //Do Not reset the options just the arm and zone states
+    //armLoud()
 }
 
 def armSilent()
@@ -275,6 +291,15 @@ def armLoud()
     sendEvent( name:"silent", value: "loud" )
 }
 
+def armBypass()
+{
+	state.bBypass = "True"
+}
+
+def armRegular()
+{
+	state.bBypass = "False"
+}
 
 def lock() {
 	armstay()
@@ -286,13 +311,28 @@ def unlock(){
 
 def armstay() {
 	log.debug "Executing 'ArmStay'"
+    
     if( state.bLoud == "False" )
     {
-		sendKeypressArray( [ (byte)0x05, (byte)0x28 ] as byte[] )
+    	//if( state.bBypass == "True" )
+    	//{
+        //	sendKeypressArray( [ (byte)0x05, (byte)0x0B, (byte)0x28 ] as byte[] )
+        //}
+        //else
+        //{
+        	sendKeypressArray( [ (byte)0x05, (byte)0x28 ] as byte[] )
+        //}
     }
-    else
+    else 
     {
-    	sendKeypress( 0x28 )
+    	//if( state.bBypass == "True" )
+        //{
+        //	sendKeypressArray( [ (byte)0x0B, (byte)0x28 ] as byte[] )
+        //}
+        //	else
+    	//{
+    		sendKeypress( 0x28 )
+    	//}
     }
 }
 
